@@ -14,7 +14,7 @@ def load_data():
 
         signups = {}
         for _, row in df.iterrows():
-            key = f"{row["Date"]} - {row["Role"]}"
+            key = f"{row['Date']} - {row['Role']}"
             signups[key] = row["Name"]
         return signups
     except Exception:
@@ -55,29 +55,46 @@ with st.form("signup_form"):
     selected_date = st.selectbox("Select a Date", upcoming_sundays)
     selected_role = st.selectbox("Assignment", roles)
 
-    # NEW: Text input for the user's name
+    # Text input for the user's name
     user_name = st.text_input("First and Last Name")
 
     submitted = st.form_submit_button("Claim Assignment")
 
     if submitted:
-        # Check if they actually typed a name
-        if not user_name.strip():
+        clean_user_name = user_name.strip()
+
+        if not clean_user_name:
             st.error("Please enter your name before submitting!")
         else:
-            # Create a unique key for the date+role to prevent double-booking
             assignment_key = f"{selected_date} - {selected_role}"
+
+            # NEW: Check if this user is already signed up for ANYTHING on this date
+            user_already_booked = False
+            for existing_key, existing_name in signups.items():
+                if (
+                    selected_date in existing_key
+                    and existing_name.lower() == clean_user_name.lower()
+                ):
+                    user_already_booked = True
+                    break
 
             if assignment_key in signups:
                 st.error(
                     f"Oops! {signups[assignment_key]} already claimed the {selected_role} on {selected_date}."
                 )
+            elif user_already_booked:
+                # NEW: Block the submission if they already have an assignment that day
+                st.error(
+                    f"Hold on, {clean_user_name}! You are already scheduled for an assignment on {selected_date}. Leave some fun for the rest of the council! 😉"
+                )
             else:
-                signups[assignment_key] = user_name.strip()
+                signups[assignment_key] = clean_user_name
                 save_data(signups)
                 st.success(
-                    f"Success! {user_name} is scheduled for {selected_role} on {selected_date}."
+                    f"Success! {clean_user_name} is scheduled for {selected_role} on {selected_date}."
                 )
+                # Clear the cached data so the display updates instantly
+                st.cache_data.clear()
 
 # --- Current Schedule Display ---
 st.divider()
@@ -85,22 +102,26 @@ st.subheader("Upcoming Schedule")
 
 if signups:
     schedule_list = []
-
-    # Get today's date for comparison (reset to midnight so Sunday assignments show up on Sunday)
     current_date = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
 
     for key, name in signups.items():
         date_str, role = key.split(" - ")
-
-        # Convert the string date (e.g., "May 17, 2026") back into a Python datetime object
         assignment_date = datetime.strptime(date_str, "%b %d, %Y")
 
-        # Only add it to the table if the assignment date is today or in the future
         if assignment_date >= current_date:
             schedule_list.append({"Date": date_str, "Role": role, "Name": name})
 
     if schedule_list:
-        st.dataframe(schedule_list, use_container_width=True, hide_index=True)
+        # NEW: Convert to a DataFrame and sort chronologically before displaying
+        display_df = pd.DataFrame(schedule_list)
+
+        # Create a temporary column with actual datetime objects for accurate sorting
+        display_df["SortDate"] = pd.to_datetime(display_df["Date"], format="%b %d, %Y")
+
+        # Sort by the new column, then drop it so it doesn't show in the UI
+        display_df = display_df.sort_values(by="SortDate").drop(columns=["SortDate"])
+
+        st.dataframe(display_df, width="stretch", hide_index=True)
     else:
         st.info("No upcoming assignments claimed yet.")
 else:
