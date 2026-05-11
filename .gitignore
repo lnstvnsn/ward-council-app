@@ -176,4 +176,7 @@ pyrightconfig.json
 # Streamlit
 .streamlit/
 
+# Dev Container
+.devcontainer/
+
 # End of https://www.toptal.com/developers/gitignore/api/python
