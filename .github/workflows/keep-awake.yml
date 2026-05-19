@@ -11,4 +11,4 @@ jobs:
         runs-on: ubuntu-latest
         steps:
           - name: Ping Streamlit App
-            run: curl -sL https://ward-council-assignments.streamlit.app > /dev/null
+            run: curl -A "Mozilla/5.0 -L https://ward-council-assignments.streamlit.app/ > /dev/null
