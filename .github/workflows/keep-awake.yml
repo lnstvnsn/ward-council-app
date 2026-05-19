@@ -1,13 +1,13 @@
 name: Keep Streamlit App Awake
 
-    on:
-      schedule:
+on:
+    schedule:
         # Runs at 00:00 every 3rd day to reset the 7-day timer
         - cron: '0 0 */3 * *'
-      workflow_dispatch: # Allows you to trigger it manually if needed
+    workflow_dispatch: # Allows you to trigger it manually if needed
 
-    jobs:
-      ping:
+jobs:
+    ping:
         runs-on: ubuntu-latest
         steps:
           - name: Ping Streamlit App
